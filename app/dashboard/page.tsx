@@ -5,51 +5,78 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { PieChart, BarChart } from "@/components/ui/charts"
+import { getSLAMetrics } from "@/utils/sla"
+
+interface DashboardData {
+  taskDistribution: {
+    labels: string[];
+    datasets: {
+      data: number[];
+      backgroundColor: string[];
+      borderColor: string[];
+      borderWidth: number;
+    }[];
+  };
+  slaMetrics: {
+    completedOnTimePercentage: number;
+    overduePercentage: number;
+  };
+}
 
 export default function Dashboard() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [tasks, setTasks] = useState([])
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    if (!session) {
-      router.push("/auth/login")
-    } else {
-      // Fetch tasks from the backend
-      fetch("/api/tasks")
-        .then((res) => res.json())
-        .then((data) => setTasks(data))
+    if (session) {
+      fetchDashboardData()
     }
-  }, [session, router])
+  }, [session])
+
+  const fetchDashboardData = async () => {
+    const [tasksResponse, slaMetrics] = await Promise.all([
+      fetch("/api/tasks/summary"),
+      getSLAMetrics(),
+    ])
+    
+    if (tasksResponse.ok) {
+      const tasksData = await tasksResponse.json()
+      setDashboardData({ ...tasksData, slaMetrics })
+    }
+  }
+
+  if (!dashboardData) return <div>Loading...</div>
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <div className="container mx-auto px-4 py-16">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button onClick={() => router.push('/tasks/create')}>New Task</Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Dashboard Overview</CardTitle>
+            <CardTitle>Task Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-white rounded shadow">
-                <h2 className="text-xl font-bold">Total Tasks</h2>
-                <p>{tasks.length}</p>
-              </div>
-              <div className="p-4 bg-white rounded shadow">
-                <h2 className="text-xl font-bold">Completed Tasks</h2>
-                <p>{tasks.filter(task => task.status === "Completed").length}</p>
-              </div>
-              <div className="p-4 bg-white rounded shadow">
-                <h2 className="text-xl font-bold">Overdue Tasks</h2>
-                <p>{tasks.filter(task => task.status === "Overdue").length}</p>
-              </div>
-            </div>
-            <Button className="mt-4" onClick={() => router.push("/dashboard/tasks")}>
-              View All Tasks
-            </Button>
+            <PieChart data={dashboardData.taskDistribution} />
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>SLA Compliance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarChart data={[
+              { name: "Completed on Time", value: dashboardData.slaMetrics.completedOnTimePercentage },
+              { name: "Overdue", value: dashboardData.slaMetrics.overduePercentage },
+            ]} />
+          </CardContent>
+        </Card>
+        {/* Add more cards for other metrics */}
       </div>
-    </main>
+    </div>
   )
 }
