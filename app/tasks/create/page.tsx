@@ -22,6 +22,8 @@ const taskTypes = {
   "Administration": ["Meeting Setup", "HR Request"],
 }
 
+const STATUS_OPTIONS = ["Opened", "In Progress", "Blocked", "Completed"]
+
 interface User {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ interface FormData {
   assignedTo: string;
   deadline: string;
   attachments: string[];
+  status: string;
   [key: string]: any;
 }
 
@@ -50,6 +53,7 @@ export default function CreateTask() {
     assignedTo: "",
     deadline: "",
     attachments: [],
+    status: "Opened", // Set default status to "Opened"
   })
 
   useEffect(() => {
@@ -149,28 +153,30 @@ export default function CreateTask() {
   }
 
   return (
-    <Card>
+    <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Create New Task</CardTitle>
+        <CardTitle className="text-2xl font-bold">Create New Task</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Input
             placeholder="Title"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
+            className="w-full"
           />
           <Textarea
             placeholder="Description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             required
+            className="w-full"
           />
           <Select
             onValueChange={(value) => setFormData({ ...formData, department: value, taskType: "" })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select Department" />
             </SelectTrigger>
             <SelectContent>
@@ -185,7 +191,7 @@ export default function CreateTask() {
             <Select
               onValueChange={(value) => setFormData({ ...formData, taskType: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Task Type" />
               </SelectTrigger>
               <SelectContent>
@@ -201,7 +207,7 @@ export default function CreateTask() {
           <Select
             onValueChange={(value) => setFormData({ ...formData, assignedTo: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Assign To" />
             </SelectTrigger>
             <SelectContent>
@@ -216,7 +222,22 @@ export default function CreateTask() {
             onChange={(date) => setFormData({ ...formData, deadline: date.toISOString() })}
             required
           />
-          <div className="flex justify-end space-x-2">
+          <Select
+            value={formData.status}
+            onValueChange={(value) => setFormData({ ...formData, status: value })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex justify-end space-x-2 mt-6">
             <Button type="button" variant="outline" onClick={() => router.push("/dashboard/tasks")}>
               Cancel
             </Button>

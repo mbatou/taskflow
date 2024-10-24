@@ -28,7 +28,7 @@ interface Task {
   dynamicFields: any;
 }
 
-const statusOptions = ["Pending", "In Progress", "Completed", "Overdue"]
+const STATUS_OPTIONS = ["Opened", "In Progress", "Blocked", "Completed"]
 
 export default function TaskDetail({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -224,7 +224,7 @@ export default function TaskDetail({ params }: { params: { id: string } }) {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((status) => (
+                  {STATUS_OPTIONS.map((status) => (
                     <SelectItem key={status} value={status}>{status}</SelectItem>
                   ))}
                 </SelectContent>
@@ -235,7 +235,7 @@ export default function TaskDetail({ params }: { params: { id: string } }) {
               <span className={`px-2 py-1 rounded-full text-sm font-semibold
                 ${task.status === 'Completed' ? 'bg-green-200 text-green-800' :
                 task.status === 'In Progress' ? 'bg-blue-200 text-blue-800' :
-                task.status === 'Overdue' ? 'bg-red-200 text-red-800' :
+                task.status === 'Blocked' ? 'bg-red-200 text-red-800' :
                 'bg-gray-200 text-gray-800'}`}>
                 {task.status}
               </span>

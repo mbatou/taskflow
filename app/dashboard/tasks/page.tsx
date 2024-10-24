@@ -5,11 +5,14 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Drawer } from "vaul"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { toast } from "sonner"
+
+const STATUS_OPTIONS = ["Opened", "In Progress", "Blocked", "Completed"]
 
 interface Task {
   id: string;
@@ -35,6 +38,7 @@ export default function TasksOverview() {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
   const [editTask, setEditTask] = useState<Task | null>(null)
   const [users, setUsers] = useState<{ id: string; name: string }[]>([])
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -86,27 +90,64 @@ export default function TasksOverview() {
     if (!editTask) return
 
     try {
-      const response = await fetch(`/api/tasks?id=${editTask.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editTask.title,
-          department: editTask.department,
-          taskType: editTask.taskType,
-          status: editTask.status,
-          deadline: editTask.deadline,
-          assignedTo: editTask.assignedTo.id, // Ensure this is a string
-        }),
-      });
+      // Create an object with only the fields that have changed
+      const updatedFields = Object.keys(editTask).reduce((acc, key) => {
+        const originalTask = tasks.find(t => t.id === editTask.id);
+        if (!originalTask) return acc;
 
-      if (response.ok) {
-        fetchTasks();
-        setSelectedTaskId(null);
+        switch (key) {
+          case 'assignedTo':
+            if (editTask.assignedTo && originalTask.assignedTo) {
+              if (editTask.assignedTo.id !== originalTask.assignedTo.id) {
+                acc.assignedTo = { id: editTask.assignedTo.id, name: editTask.assignedTo.name }; // Updated to match the structure
+              }
+            }
+            break;
+          case 'deadline':
+            const date = new Date(editTask.deadline);
+            if (!isNaN(date.getTime()) && date.toISOString() !== originalTask.deadline) {
+              acc.deadline = date.toISOString();
+            }
+            break;
+          default:
+            if (key === 'assignedTo') {
+              if (typeof editTask.assignedTo === 'object' && editTask.assignedTo !== null) {
+                acc.assignedTo = editTask.assignedTo; // Ensure it's an object
+              }
+            } else if (editTask[key as keyof Task] !== originalTask[key as keyof Task]) {
+              acc[key as keyof Task] = editTask[key as keyof Task] as any; // Use 'as any' to bypass type checking
+            }
+        }
+        return acc;
+      }, {} as Partial<Task>);
+
+      // Only proceed with the update if there are changes
+      if (Object.keys(updatedFields).length > 0) {
+        const response = await fetch(`/api/tasks/${editTask.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedFields),
+        });
+
+        if (response.ok) {
+          fetchTasks();
+          setIsDrawerOpen(false); // Close the drawer after successful edit
+          toast.success("Task updated successfully");
+          
+          // If the assignee has changed, show a success message
+          if (updatedFields.assignedTo) {
+            toast.success(`Task assigned to ${editTask.assignedTo.name}`);
+          }
+        } else {
+          console.error("Failed to update task", await response.json());
+          toast.error("Failed to update task");
+        }
       } else {
-        console.error("Failed to update task", await response.json());
+        setIsDrawerOpen(false); // Close the drawer if no changes were made
       }
     } catch (error) {
       console.error("Error updating task:", error);
+      toast.error("Error updating task");
     }
   };
 
@@ -142,9 +183,11 @@ export default function TasksOverview() {
                   <TableCell>{new Date(task.deadline).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(task.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="flex space-x-2">
-                    <Drawer.Root>
+                    <Drawer.Root open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
                       <Drawer.Trigger asChild>
-                        <Button onClick={() => { setEditTask(task); setSelectedTaskId(task.id); }}>View/Edit</Button>
+                        <Button onClick={() => { setEditTask(task); setSelectedTaskId(task.id); setIsDrawerOpen(true); }}>
+                          View/Edit
+                        </Button>
                       </Drawer.Trigger>
                       <Drawer.Portal>
                         <Drawer.Overlay className="fixed inset-0 bg-black/40" />
@@ -178,9 +221,9 @@ export default function TasksOverview() {
                                         {editTask.status}
                                       </SelectTrigger>
                                       <SelectContent className="bg-gray-700 text-white">
-                                        <SelectItem value="Pending">Pending</SelectItem>
-                                        <SelectItem value="In Progress">In Progress</SelectItem>
-                                        <SelectItem value="Completed">Completed</SelectItem>
+                                        {STATUS_OPTIONS.map((status) => (
+                                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                                        ))}
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -218,7 +261,11 @@ export default function TasksOverview() {
                                   </div>
 
                                   <div className="flex justify-end space-x-3 mt-8">
-                                    <Button onClick={() => setSelectedTaskId(null)} className="bg-gray-600 text-white hover:bg-gray-700">
+                                    <Button 
+                                      type="button"
+                                      onClick={() => setIsDrawerOpen(false)} 
+                                      className="bg-gray-600 text-white hover:bg-gray-700"
+                                    >
                                       Cancel
                                     </Button>
                                     <Button type="submit" className="bg-black text-white hover:bg-gray-900">

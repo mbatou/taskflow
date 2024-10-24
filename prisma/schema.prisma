@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   tasks         Task[]    @relation("AssignedTasks")
   createdTasks  Task[]    @relation("CreatedTasks")
+  notifications Notification[]
 }
 
 model Task {
@@ -37,4 +38,13 @@ model Task {
   createdById   String
   dynamicFields String?
   slaBreached   Boolean  @default(false)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
 }
