@@ -6,13 +6,15 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Drawer } from "vaul"
+import TaskDetail from "./[id]/page"
 
 interface Task {
   id: string;
   title: string;
   department: string;
+  taskType: string;
   status: string;
   deadline: string;
   assignedTo: {
@@ -25,7 +27,8 @@ export default function TasksOverview() {
   const { data: session } = useSession()
   const router = useRouter()
   const [tasks, setTasks] = useState<Task[]>([])
-  const [filter, setFilter] = useState({ status: "", department: "", deadline: "" })
+  const [filter, setFilter] = useState({ status: "", department: "", taskType: "", deadline: "" })
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   useEffect(() => {
     if (session) {
@@ -66,6 +69,7 @@ export default function TasksOverview() {
             <TableRow>
               <TableHead>Title</TableHead>
               <TableHead>Department</TableHead>
+              <TableHead>Task Type</TableHead>
               <TableHead>Assigned To</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Deadline</TableHead>
@@ -78,12 +82,33 @@ export default function TasksOverview() {
               <TableRow key={task.id} className={task.status === "Overdue" ? "bg-red-100" : ""}>
                 <TableCell>{task.title}</TableCell>
                 <TableCell>{task.department}</TableCell>
+                <TableCell>{task.taskType}</TableCell>
                 <TableCell>{task.assignedTo?.name || 'Unassigned'}</TableCell>
                 <TableCell>{task.status}</TableCell>
                 <TableCell>{new Date(task.deadline).toLocaleDateString()}</TableCell>
                 <TableCell>{new Date(task.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Button onClick={() => router.push(`/dashboard/tasks/${task.id}`)}>View</Button>
+                  <Drawer.Root>
+                    <Drawer.Trigger asChild>
+                      <Button onClick={() => setSelectedTaskId(task.id)}>View</Button>
+                    </Drawer.Trigger>
+                    <Drawer.Portal>
+                      <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+                      <Drawer.Content className="bg-zinc-100 flex flex-col rounded-t-[10px] h-[96%] mt-24 fixed bottom-0 right-0 w-[400px]">
+                        <div className="p-4 bg-white rounded-t-[10px] flex-1 overflow-auto">
+                          <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-zinc-300 mb-8" />
+                          <div className="max-w-md mx-auto">
+                            {selectedTaskId && (
+                              <>
+                                <TaskDetail params={{ id: selectedTaskId }} />
+                                <Button onClick={() => setSelectedTaskId(null)}>Edit</Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </Drawer.Content>
+                    </Drawer.Portal>
+                  </Drawer.Root>
                   {session?.user?.role && (session.user.role === "Admin" || session.user.role === "Department Manager") && (
                     <Select onValueChange={(value) => handleStatusChange(task.id, value)}>
                       <SelectTrigger className="w-[180px]">

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Input } from './input'
+import { Input } from '@/components/ui/input'
 
 interface FileUploadProps {
   onUpload: (files: FileList) => void

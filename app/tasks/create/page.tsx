@@ -14,6 +14,14 @@ import { toast } from "sonner"
 
 const departments = ["Finance", "Marketing & Strategy", "Operations", "Administration", "Graphic Design"]
 
+const taskTypes = {
+  "Marketing & Strategy": ["Campaign", "Social Media Post", "Ad Creation"],
+  "Graphic Design": ["Content Creation", "Design Request"],
+  "Finance": ["Budget Approval", "Invoice Request"],
+  "Operations": ["Logistics Setup", "Resource Allocation"],
+  "Administration": ["Meeting Setup", "HR Request"],
+}
+
 interface User {
   id: string;
   name: string;
@@ -23,9 +31,11 @@ interface FormData {
   title: string;
   description: string;
   department: string;
+  taskType: string;
   assignedTo: string;
   deadline: string;
   attachments: string[];
+  [key: string]: any;
 }
 
 export default function CreateTask() {
@@ -36,13 +46,13 @@ export default function CreateTask() {
     title: "",
     description: "",
     department: "",
+    taskType: "",
     assignedTo: "",
     deadline: "",
     attachments: [],
   })
 
   useEffect(() => {
-    // Fetch all users regardless of department
     fetch('/api/users')
       .then(res => res.json())
       .then(data => setUsers(data))
@@ -59,7 +69,6 @@ export default function CreateTask() {
         ...formData,
         createdAt: new Date().toISOString(),
         createdBy: session?.user?.id,
-        attachments: formData.attachments.length > 0 ? formData.attachments : [], // Ensure it's always an array
       }),
     })
 
@@ -91,6 +100,54 @@ export default function CreateTask() {
     setFormData({ ...formData, attachments: [...formData.attachments, ...uploadedFiles.filter(Boolean) as string[]] })
   }
 
+  const renderDynamicFields = () => {
+    switch (formData.taskType) {
+      case "Campaign":
+        return (
+          <>
+            <Input
+              placeholder="Brand"
+              value={formData.brand || ""}
+              onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+              required
+            />
+            <Select onValueChange={(value) => setFormData({ ...formData, platform: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {["Facebook", "Instagram", "LinkedIn", "Twitter"].map((platform) => (
+                  <SelectItem key={platform} value={platform}>
+                    {platform}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FileUpload
+              onUpload={(files) => handleFileUpload(files)}
+              accept="image/*"
+              maxSize={5 * 1024 * 1024} // 5MB limit
+            />
+            <Textarea
+              placeholder="Caption"
+              value={formData.caption || ""}
+              onChange={(e) => setFormData({ ...formData, caption: e.target.value })}
+              required
+            />
+            <Input
+              placeholder="Call to Action"
+              value={formData.callToAction || ""}
+              onChange={(e) => setFormData({ ...formData, callToAction: e.target.value })}
+              required
+            />
+          </>
+        )
+      // Add cases for other task types here
+      default:
+        return null
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -111,7 +168,7 @@ export default function CreateTask() {
             required
           />
           <Select
-            onValueChange={(value) => setFormData({ ...formData, department: value })}
+            onValueChange={(value) => setFormData({ ...formData, department: value, taskType: "" })}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Department" />
@@ -124,6 +181,23 @@ export default function CreateTask() {
               ))}
             </SelectContent>
           </Select>
+          {formData.department && (
+            <Select
+              onValueChange={(value) => setFormData({ ...formData, taskType: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Task Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {taskTypes[formData.department as keyof typeof taskTypes].map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {renderDynamicFields()}
           <Select
             onValueChange={(value) => setFormData({ ...formData, assignedTo: value })}
           >
@@ -141,12 +215,6 @@ export default function CreateTask() {
           <DatePicker
             onChange={(date) => setFormData({ ...formData, deadline: date.toISOString() })}
             required
-          />
-          <FileUpload
-            onUpload={handleFileUpload}
-            multiple
-            accept=".pdf,.jpeg,.jpg,.png,.docx"
-            maxSize={10 * 1024 * 1024} // 10MB limit
           />
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => router.push("/dashboard/tasks")}>

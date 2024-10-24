@@ -1,5 +1,5 @@
 import React from 'react'
-import { Input } from './input'
+import { Input } from '@/components/ui/input'
 
 interface DatePickerProps {
   onChange: (date: Date) => void
@@ -10,7 +10,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, required }) =>
   return (
     <Input
       type="date"
-      onChange={(e) => onChange(new Date(e.target.value))}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(new Date(e.target.value))}
       required={required}
     />
   )
