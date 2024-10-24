@@ -131,95 +131,120 @@ export default function TasksOverview() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tasks.map((task) => (
-              <TableRow key={task.id} className={task.status === "Overdue" ? "bg-red-100" : ""}>
-                <TableCell>{task.title}</TableCell>
-                <TableCell>{task.department}</TableCell>
-                <TableCell>{task.taskType}</TableCell>
-                <TableCell>{task.assignedTo?.name || 'Unassigned'}</TableCell>
-                <TableCell>{task.status}</TableCell>
-                <TableCell>{new Date(task.deadline).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(task.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell className="flex space-x-2">
-                  <Drawer.Root>
-                    <Drawer.Trigger asChild>
-                      <Button onClick={() => { setEditTask(task); setSelectedTaskId(task.id); }}>View/Edit</Button>
-                    </Drawer.Trigger>
-                    <Drawer.Portal>
-                      <Drawer.Overlay className="fixed inset-0 bg-black/40" />
-                      <Drawer.Content className="bg-zinc-100 flex flex-col rounded-t-[10px] h-[96%] mt-24 fixed bottom-0 right-0 w-[400px]">
-                        <div className="p-4 bg-white rounded-t-[10px] flex-1 overflow-auto">
-                          <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-zinc-300 mb-8" />
-                          <div className="max-w-md mx-auto">
-                            {editTask && (
-                              <form onSubmit={(e) => { e.preventDefault(); handleEdit(); }}>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Title</label>
-                                  <p>{editTask.title}</p>
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Department</label>
-                                  <p>{editTask.department}</p>
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Task Type</label>
-                                  <p>{editTask.taskType}</p>
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Status</label>
-                                  <Select value={editTask.status} onValueChange={(value) => setEditTask({ ...editTask, status: value })}>
-                                    <SelectTrigger>{editTask.status}</SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Pending">Pending</SelectItem>
-                                      <SelectItem value="In Progress">In Progress</SelectItem>
-                                      <SelectItem value="Completed">Completed</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Due Date</label>
-                                  <input
-                                    type="date"
-                                    value={new Date(editTask.deadline).toISOString().split('T')[0]}
-                                    onChange={(e) => setEditTask({ ...editTask, deadline: e.target.value })}
-                                    className="border rounded p-2 w-full"
-                                  />
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Assignee</label>
-                                  <select
-                                    value={editTask.assignedTo.id}
-                                    onChange={(e) => setEditTask({ ...editTask, assignedTo: { id: e.target.value, name: users.find(user => user.id === e.target.value)?.name || '' } })}
-                                    className="border rounded p-2 w-full"
-                                  >
-                                    {users.map(user => (
-                                      <option key={user.id} value={user.id}>
-                                        {user.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="mb-4">
-                                  <label className="block text-sm font-medium">Created Date</label>
-                                  <p>{new Date(editTask.createdAt).toLocaleDateString()}</p>
-                                </div>
-                                <div className="flex justify-end space-x-2 mt-4">
-                                  <Button onClick={() => setSelectedTaskId(null)}>Cancel</Button>
-                                  <Button type="submit" className="bg-blue-500 text-white">Save</Button>
-                                </div>
-                              </form>
-                            )}
+            {tasks.length > 0 ? (
+              tasks.map((task) => (
+                <TableRow key={task.id} className={task.status === "Overdue" ? "bg-red-100" : ""}>
+                  <TableCell>{task.title}</TableCell>
+                  <TableCell>{task.department}</TableCell>
+                  <TableCell>{task.taskType}</TableCell>
+                  <TableCell>{task.assignedTo?.name || 'Unassigned'}</TableCell>
+                  <TableCell>{task.status}</TableCell>
+                  <TableCell>{new Date(task.deadline).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(task.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="flex space-x-2">
+                    <Drawer.Root>
+                      <Drawer.Trigger asChild>
+                        <Button onClick={() => { setEditTask(task); setSelectedTaskId(task.id); }}>View/Edit</Button>
+                      </Drawer.Trigger>
+                      <Drawer.Portal>
+                        <Drawer.Overlay className="fixed inset-0 bg-black/40" />
+                        <Drawer.Content className="bg-gradient-to-br from-gray-900 to-black flex flex-col rounded-t-[20px] h-[96%] mt-24 fixed bottom-0 right-0 w-[450px] shadow-lg">
+                          <div className="p-6 flex-1 overflow-auto">
+                            <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-gray-600 mb-8" />
+                            <div className="max-w-md mx-auto">
+                              {editTask && (
+                                <form onSubmit={(e) => { e.preventDefault(); handleEdit(); }} className="space-y-6">
+                                  <h2 className="text-2xl font-bold text-white mb-6">Edit Task</h2>
+                                  
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
+                                    <p className="text-lg font-semibold text-white">{editTask.title}</p>
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Department</label>
+                                    <p className="text-lg text-white">{editTask.department}</p>
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Task Type</label>
+                                    <p className="text-lg text-white">{editTask.taskType}</p>
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-300 mb-1">Status</label>
+                                    <Select value={editTask.status} onValueChange={(value) => setEditTask({ ...editTask, status: value })}>
+                                      <SelectTrigger id="status" className="w-full bg-gray-700 text-white">
+                                        {editTask.status}
+                                      </SelectTrigger>
+                                      <SelectContent className="bg-gray-700 text-white">
+                                        <SelectItem value="Pending">Pending</SelectItem>
+                                        <SelectItem value="In Progress">In Progress</SelectItem>
+                                        <SelectItem value="Completed">Completed</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-300 mb-1">Due Date</label>
+                                    <input
+                                      id="dueDate"
+                                      type="date"
+                                      value={new Date(editTask.deadline).toISOString().split('T')[0]}
+                                      onChange={(e) => setEditTask({ ...editTask, deadline: e.target.value })}
+                                      className="border rounded p-2 w-full bg-gray-700 text-white focus:ring-2 focus:ring-gray-500"
+                                    />
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label htmlFor="assignee" className="block text-sm font-medium text-gray-300 mb-1">Assignee</label>
+                                    <select
+                                      id="assignee"
+                                      value={editTask.assignedTo.id}
+                                      onChange={(e) => setEditTask({ ...editTask, assignedTo: { id: e.target.value, name: users.find(user => user.id === e.target.value)?.name || '' } })}
+                                      className="border rounded p-2 w-full bg-gray-700 text-white focus:ring-2 focus:ring-gray-500"
+                                    >
+                                      {users.map(user => (
+                                        <option key={user.id} value={user.id}>
+                                          {user.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <div className="bg-gray-800 p-4 rounded-lg shadow-sm">
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Created Date</label>
+                                    <p className="text-lg text-white">{new Date(editTask.createdAt).toLocaleDateString()}</p>
+                                  </div>
+
+                                  <div className="flex justify-end space-x-3 mt-8">
+                                    <Button onClick={() => setSelectedTaskId(null)} className="bg-gray-600 text-white hover:bg-gray-700">
+                                      Cancel
+                                    </Button>
+                                    <Button type="submit" className="bg-black text-white hover:bg-gray-900">
+                                      Save Changes
+                                    </Button>
+                                  </div>
+                                </form>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </Drawer.Content>
-                    </Drawer.Portal>
-                  </Drawer.Root>
-                  <button className="delete-button" onClick={() => { setTaskToDelete(task.id); setShowDeleteModal(true); }}>
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
+                        </Drawer.Content>
+                      </Drawer.Portal>
+                    </Drawer.Root>
+                    <button className="delete-button" onClick={() => { setTaskToDelete(task.id); setShowDeleteModal(true); }}>
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center">
+                  No tasks available for now
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </CardContent>
