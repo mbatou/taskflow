@@ -1,11 +1,5 @@
-const mongoose = require('mongoose');
+import { PrismaClient } from '@prisma/client';
 
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  department: { type: String, required: true },
-  role: { type: String, default: 'Employee' },
-}, { timestamps: true });
+const prisma = new PrismaClient();
 
-module.exports = mongoose.model('User', userSchema);
+export const User = prisma.user;

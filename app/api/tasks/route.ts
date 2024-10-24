@@ -76,3 +76,65 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Error creating task' }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
+    }
+
+    await prisma.task.delete({
+      where: { id }, // Ensure id is used as a string
+    })
+
+    return NextResponse.json({ message: 'Task deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting task:', error)
+    return NextResponse.json({ error: 'Error deleting task' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get('id')
+
+  if (!id) {
+    return NextResponse.json({ error: 'Task ID is required' }, { status: 400 })
+  }
+
+  try {
+    const body = await request.json()
+    const { status, deadline, assignedTo } = body
+
+    if (!assignedTo) {
+      return NextResponse.json({ error: 'Assignee ID is required' }, { status: 400 })
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: String(id) },
+      data: {
+        status,
+        deadline: new Date(deadline),
+        assignedTo: {
+          connect: { id: assignedTo }, // Ensure this is a valid user ID
+        },
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json(updatedTask)
+  } catch (error) {
+    console.error('Error updating task:', error)
+    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
+  }
+}
