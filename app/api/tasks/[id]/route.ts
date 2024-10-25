@@ -29,35 +29,40 @@ export async function GET(request: Request, context: { params: { id: string } })
   }
 }
 
-export async function PATCH(request: Request, context: { params: { id: string } }) {
-  const { id } = context.params;
-  const body = await request.json()
-
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    // Validate and transform the data before updating
+    const id = params.id;
+    const body = await request.json();
+
+    // Prepare the update data
     const updateData: any = {};
-    if (body.title) updateData.title = body.title;
-    if (body.description) updateData.description = body.description;
-    if (body.department) updateData.department = body.department;
-    if (body.taskType) updateData.taskType = body.taskType;
-    if (body.status) updateData.status = body.status;
-    if (body.deadline) {
-      const date = new Date(body.deadline);
-      if (!isNaN(date.getTime())) {
-        updateData.deadline = date;
+
+    // Handle status update
+    if (body.status) {
+      updateData.status = body.status;
+    }
+
+    // Handle assignedTo update
+    if (body.assignedTo) {
+      updateData.assignedTo = {
+        connect: { id: body.assignedTo.id }
+      };
+    }
+
+    // Handle other field updates
+    const updatableFields = ['title', 'description', 'priority', 'dueDate'];
+    for (const field of updatableFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field];
       }
     }
-    
-    let oldAssigneeId = null;
-    if (body.assignedTo) {
-      // Get the current assignee before updating
-      const currentTask = await prisma.task.findUnique({
-        where: { id },
-        select: { assignedTo: { select: { id: true } } }
-      });
-      oldAssigneeId = currentTask?.assignedTo?.id;
 
-      updateData.assignedTo = { connect: { id: body.assignedTo } };
+    // Handle dynamicFields update
+    if (body.dynamicFields) {
+      updateData.dynamicFields = JSON.stringify(body.dynamicFields);
     }
 
     const updatedTask = await prisma.task.update({
@@ -65,19 +70,23 @@ export async function PATCH(request: Request, context: { params: { id: string } 
       data: updateData,
       include: {
         assignedTo: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    })
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
 
-    // If the assignee has changed, send a notification
-    if (body.assignedTo && body.assignedTo !== oldAssigneeId) {
-      await sendNotification(updatedTask.assignedTo.id, `You have been assigned a new task: ${updatedTask.title}`);
+    // If status was updated, you might want to send a notification
+    if (body.status && updatedTask.assignedTo) {
+      await sendNotification(updatedTask.assignedTo.email, `Task status updated to ${updatedTask.status}`);
     }
 
-    return NextResponse.json(updatedTask)
+    return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error('Error updating task:', error)
-    return NextResponse.json({ error: 'Error updating task' }, { status: 500 })
+    console.error("Error updating task:", error);
+    return NextResponse.json({ error: "Error updating task" }, { status: 500 });
   }
 }
